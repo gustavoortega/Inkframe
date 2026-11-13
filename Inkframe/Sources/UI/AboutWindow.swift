@@ -39,7 +39,7 @@ class AboutWindowController {
 
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "ScreenCap",
+            .applicationName: "Inkframe",
             .applicationVersion: "1.0",
             .version: "1",
             .credits: credits,

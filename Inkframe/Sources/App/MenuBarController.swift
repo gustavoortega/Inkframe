@@ -68,7 +68,7 @@ class MenuBarController {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "ScreenCap"
+        image.accessibilityDescription = "Inkframe"
         return image
     }
 
@@ -167,12 +167,12 @@ class MenuBarController {
 
         menu.addItem(NSMenuItem.separator())
 
-        menu.addItem(makeItem("About ScreenCap", icon: "info.circle", action: #selector(showAbout)))
+        menu.addItem(makeItem("About Inkframe", icon: "info.circle", action: #selector(showAbout)))
         menu.addItem(makeItem("Preferences...", icon: "gear", action: #selector(openPreferences), key: ",", modifiers: [.command]))
 
         menu.addItem(NSMenuItem.separator())
 
-        let quit = makeItem("Quit ScreenCap", icon: "power", action: #selector(quitApp), key: "q", modifiers: [.command])
+        let quit = makeItem("Quit Inkframe", icon: "power", action: #selector(quitApp), key: "q", modifiers: [.command])
         menu.addItem(quit)
 
         return menu

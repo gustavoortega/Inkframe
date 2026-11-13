@@ -1,5 +1,5 @@
 import XCTest
-@testable import ScreenCap
+@testable import Inkframe
 
 final class ToolSettingsTests: XCTestCase {
     private let keys = ["inlineColorIndex", "inlineLineWidth", "inlineFontSize"]

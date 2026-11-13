@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "ScreenCap",
+    name: "Inkframe",
     platforms: [
         .macOS(.v14)
     ],
@@ -11,7 +11,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "ScreenCap",
+            name: "Inkframe",
             dependencies: ["HotKey"],
             path: "Sources",
             resources: [
@@ -19,8 +19,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "ScreenCapTests",
-            dependencies: ["ScreenCap"],
+            name: "InkframeTests",
+            dependencies: ["Inkframe"],
             path: "Tests"
         )
     ]

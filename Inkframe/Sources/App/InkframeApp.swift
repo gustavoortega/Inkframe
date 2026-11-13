@@ -2,7 +2,7 @@ import Cocoa
 import SwiftUI
 
 @main
-struct ScreenCapApp {
+struct InkframeApp {
     static func main() {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)

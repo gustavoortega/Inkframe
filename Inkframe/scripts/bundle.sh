@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds ScreenCap.app from source and signs it with a stable identity.
+# Builds Inkframe.app from source and signs it with a stable identity.
 # A stable signature keeps the Screen Recording grant across rebuilds; ad-hoc signing would reset it every build.
 set -euo pipefail
 
@@ -8,15 +8,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 swift build -c release
 
-APP="build/ScreenCap.app"
+APP="build/Inkframe.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp .build/release/ScreenCap "$APP/Contents/MacOS/ScreenCap"
+cp .build/release/Inkframe "$APP/Contents/MacOS/Inkframe"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --options runtime --timestamp=none \
-  --entitlements Resources/ScreenCap.entitlements \
+  --entitlements Resources/Inkframe.entitlements \
   --sign "$SIGN_IDENTITY" "$APP"
 codesign --verify --strict --verbose=1 "$APP"
 echo "Built $APP"

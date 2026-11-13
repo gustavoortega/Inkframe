@@ -1,8 +1,12 @@
 <p align="center">
-  <img src="https://img.icons8.com/sf-regular-filled/96/228BE6/screenshot.png" alt="ScreenCap Logo" width="96" height="96">
+  <img src="docs/icon.png" alt="Inkframe icon" width="96" height="96">
 </p>
 
-<h1 align="center">ScreenCap — Free macOS Screenshot & Screen Recording App</h1>
+<h1 align="center">Inkframe — Free macOS Screenshot & Screen Recording App</h1>
+
+<p align="center">
+  Fork of <a href="https://github.com/8tp/ScreenCap">ScreenCap</a> by Hunter Meherin (MIT). Adds flameshot-style in-place annotation on Cmd+Shift+X and runs sandboxed with no network access.
+</p>
 
 <p align="center">
   <strong>The open-source CleanShot X alternative for macOS.</strong><br>
@@ -24,9 +28,9 @@
 
 ---
 
-## Why ScreenCap over CleanShot X, Snagit, or macOS Screenshots?
+## Why Inkframe over CleanShot X, Snagit, or macOS Screenshots?
 
-|  | Paid Tools (CleanShot X, Snagit) | macOS Built-in | **ScreenCap** |
+|  | Paid Tools (CleanShot X, Snagit) | macOS Built-in | **Inkframe** |
 |:--|:--:|:--:|:--:|
 | Price | $29–89/yr | Free | **Free forever** |
 | Area capture with dimensions | Yes | No | **Yes** |
@@ -86,7 +90,7 @@
 | `Ctrl+Shift+9` | OCR Screen Region |
 | `Ctrl+Shift+0` | Color Picker |
 
-ScreenCap now defaults to a conflict-free shortcut profile on first launch so it does not fire alongside Apple's built-in screenshot shortcuts. You can switch to a `Cmd+Shift` compatibility profile in Preferences, but macOS screenshot shortcuts should be disabled first if you do.
+Inkframe now defaults to a conflict-free shortcut profile on first launch so it does not fire alongside Apple's built-in screenshot shortcuts. You can switch to a `Cmd+Shift` compatibility profile in Preferences, but macOS screenshot shortcuts should be disabled first if you do.
 
 ---
 
@@ -95,8 +99,8 @@ ScreenCap now defaults to a conflict-free shortcut profile on first launch so it
 ### Build from Source
 
 ```bash
-git clone https://github.com/8tp/ScreenCap.git
-cd screencap/ScreenCap
+git clone https://github.com/gustavoortega/Inkframe.git
+cd Inkframe/Inkframe
 swift build -c release
 ```
 
@@ -105,13 +109,13 @@ Screen Recording grant survives rebuilds:
 
 ```bash
 SIGN_IDENTITY="<your code-signing identity>" ./scripts/bundle.sh
-open build/ScreenCap.app
+open build/Inkframe.app
 ```
 
 ### Open in Xcode
 
 ```bash
-cd screencap/ScreenCap
+cd Inkframe/Inkframe
 open Package.swift
 # Set signing to "Sign to Run Locally"
 # Build and run (Cmd+R)
@@ -127,7 +131,7 @@ open Package.swift
 ## Architecture
 
 ```
-ScreenCap/Sources/
+Inkframe/Sources/
   App/           App lifecycle, menubar, permissions
   Capture/       Screenshot engine, area/window/scroll capture, recording, GIF
   Editor/        Annotation editor, canvas, 10 drawing tools, background presets
@@ -171,7 +175,7 @@ ScreenCap/Sources/
 
 ## Privacy
 
-ScreenCap makes **zero network calls**. Everything runs locally on your Mac. No accounts, no analytics, no tracking. Your screenshots never leave your machine.
+Inkframe makes **zero network calls**. Everything runs locally on your Mac. No accounts, no analytics, no tracking. Your screenshots never leave your machine.
 
 ---
 
@@ -188,5 +192,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ---
 
 <p align="center">
-  <sub>ScreenCap — the free, open-source screenshot tool for macOS. Built with Swift, SwiftUI, and AppKit.</sub>
+  <sub>Inkframe — the free, open-source screenshot tool for macOS. Built with Swift, SwiftUI, and AppKit.</sub>
 </p>

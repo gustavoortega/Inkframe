@@ -1,5 +1,5 @@
 import XCTest
-@testable import ScreenCap
+@testable import Inkframe
 
 final class SaveScreenshotTests: XCTestCase {
     /// Screenshots can hold secrets: the saved file must be owner-only and must never replace an existing file.

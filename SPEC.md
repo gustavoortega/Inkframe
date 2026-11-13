@@ -1,3 +1,5 @@
+> Upstream design spec from ScreenCap, the project Inkframe is forked from. Kept for reference; Inkframe has diverged.
+
 # Project: ScreenCap — A Free macOS Screenshot & Annotation Tool
 
 ## Prompt for Claude Code

@@ -56,7 +56,7 @@ class AnnotationEditorController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "ScreenCap Editor"
+        window.title = "Inkframe Editor"
         window.subtitle = imageURL.lastPathComponent
         window.center()
         window.titlebarAppearsTransparent = false
@@ -248,7 +248,7 @@ class AnnotationEditorController: NSObject, NSWindowDelegate {
         self.cropBar = cropContainer
 
         // Zoom / info on the right
-        let infoLabel = NSTextField(labelWithString: "ScreenCap Editor")
+        let infoLabel = NSTextField(labelWithString: "Inkframe Editor")
         infoLabel.font = .systemFont(ofSize: 10, weight: .medium)
         infoLabel.textColor = .tertiaryLabelColor
         infoLabel.frame = NSRect(x: width - 120, y: btnY + 4, width: 110, height: 16)

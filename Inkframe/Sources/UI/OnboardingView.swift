@@ -70,7 +70,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.primary)
                     .padding(.top, 28)
 
-                Text("Welcome to ScreenCap")
+                Text("Welcome to Inkframe")
                     .font(.system(size: 24, weight: .bold))
 
                 Text("The free, open-source screenshot tool for macOS.\nGrant permissions and choose a shortcut profile to get started.")
@@ -132,7 +132,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("ScreenCap cannot suppress Apple's screenshot shortcuts directly. The recommended profile avoids the built-in Cmd+Shift+3/4/5 conflicts.")
+                Text("Inkframe cannot suppress Apple's screenshot shortcuts directly. The recommended profile avoids the built-in Cmd+Shift+3/4/5 conflicts.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

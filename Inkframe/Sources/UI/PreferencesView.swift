@@ -21,7 +21,7 @@ class PreferencesWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "ScreenCap Preferences"
+        window.title = "Inkframe Preferences"
         window.toolbarStyle = .preference
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -104,7 +104,7 @@ struct PreferencesView: View {
 
             Section {
                 Toggle(
-                    "Launch ScreenCap at login",
+                    "Launch Inkframe at login",
                     isOn: Binding(
                         get: { launchAtLogin.isEnabled },
                         set: { launchAtLogin.setEnabled($0) }

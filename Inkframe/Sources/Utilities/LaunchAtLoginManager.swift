@@ -26,16 +26,16 @@ final class LaunchAtLoginManager: ObservableObject {
         }
 
         guard isRunningFromAppBundle else {
-            return "Launch at login is available when ScreenCap is running as an app bundle."
+            return "Launch at login is available when Inkframe is running as an app bundle."
         }
 
         switch status {
         case .enabled:
-            return "ScreenCap is set to launch automatically when you log in."
+            return "Inkframe is set to launch automatically when you log in."
         case .requiresApproval:
-            return "macOS needs approval in Login Items before ScreenCap can launch automatically."
+            return "macOS needs approval in Login Items before Inkframe can launch automatically."
         case .notRegistered:
-            return "ScreenCap will stay off until you enable it here."
+            return "Inkframe will stay off until you enable it here."
         case .notFound:
             return "macOS could not find the app bundle for launch-at-login registration."
         case nil:
@@ -80,7 +80,7 @@ final class LaunchAtLoginManager: ObservableObject {
         }
 
         guard isRunningFromAppBundle else {
-            errorMessage = "Run ScreenCap as an app bundle to enable launch at login."
+            errorMessage = "Run Inkframe as an app bundle to enable launch at login."
             return
         }
 
@@ -108,15 +108,15 @@ final class LaunchAtLoginManager: ObservableObject {
 
         switch nsError.code {
         case kSMErrorInvalidSignature:
-            return "ScreenCap must be code signed as an app bundle before macOS will register it for launch at login."
+            return "Inkframe must be code signed as an app bundle before macOS will register it for launch at login."
         case kSMErrorLaunchDeniedByUser:
-            return "macOS blocked launch at login. Approve ScreenCap in System Settings > General > Login Items."
+            return "macOS blocked launch at login. Approve Inkframe in System Settings > General > Login Items."
         case kSMErrorAlreadyRegistered:
-            return "ScreenCap is already registered to launch at login."
+            return "Inkframe is already registered to launch at login."
         case kSMErrorJobNotFound:
             return enabling
-                ? "macOS could not find the launch-at-login service for ScreenCap."
-                : "ScreenCap is already removed from launch at login."
+                ? "macOS could not find the launch-at-login service for Inkframe."
+                : "Inkframe is already removed from launch at login."
         default:
             break
         }

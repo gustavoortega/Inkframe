@@ -1,12 +1,12 @@
-# Contributing to ScreenCap
+# Contributing to Inkframe
 
-Thanks for your interest in contributing! ScreenCap is a community-driven project and we welcome contributions of all kinds.
+Thanks for your interest in contributing! Inkframe is a community-driven project and we welcome contributions of all kinds.
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/screencap.git`
-3. Open the project: `cd screencap/ScreenCap && open Package.swift`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Inkframe.git`
+3. Open the project: `cd Inkframe/Inkframe && open Package.swift`
 4. Create a branch: `git checkout -b feature/your-feature-name`
 
 ## Development Setup
@@ -15,12 +15,12 @@ Thanks for your interest in contributing! ScreenCap is a community-driven projec
 - **macOS 14 (Sonoma)** minimum deployment target
 - Set signing to "Sign to Run Locally" in Xcode
 - Grant Screen Recording permission when prompted
-- ScreenCap defaults to `Ctrl+Shift` shortcuts to avoid colliding with Apple's screenshot shortcuts
+- Inkframe defaults to `Ctrl+Shift` shortcuts to avoid colliding with Apple's screenshot shortcuts
 
 ## Project Structure
 
 ```
-ScreenCap/Sources/
+Inkframe/Sources/
   App/         - App lifecycle, menubar controller, permissions
   Capture/     - Screenshot & recording engines
   Editor/      - Annotation editor, canvas, tools
