@@ -35,12 +35,41 @@ class MenuBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "ScreenCap")
+            button.image = Self.statusIcon()
             button.target = self
             button.action = #selector(toggleStatusMenu(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             statusButton = button
         }
+    }
+
+    /// Line version of the app icon (dashed selection plus arrow). A template image, so macOS tints it for light and dark menu bars.
+    private static func statusIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
+            NSColor.black.set()
+            let selection = NSBezierPath(rect: NSRect(x: 5.5, y: 5.5, width: 11, height: 9))
+            selection.lineWidth = 1.4
+            selection.setLineDash([2.4, 1.6], count: 2, phase: 0)
+            selection.stroke()
+
+            let shaft = NSBezierPath()
+            shaft.move(to: NSPoint(x: 1.5, y: 1.5))
+            shaft.line(to: NSPoint(x: 8.2, y: 7.6))
+            shaft.lineWidth = 1.8
+            shaft.lineCapStyle = .round
+            shaft.stroke()
+
+            let head = NSBezierPath()
+            head.move(to: NSPoint(x: 10.5, y: 9.8))
+            head.line(to: NSPoint(x: 5.6, y: 8.6))
+            head.line(to: NSPoint(x: 9.3, y: 5.0))
+            head.close()
+            head.fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "ScreenCap"
+        return image
     }
 
     func rebuildMenu() {
