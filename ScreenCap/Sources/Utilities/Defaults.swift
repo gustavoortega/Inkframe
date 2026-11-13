@@ -10,7 +10,7 @@ class Defaults {
             if let path = store.string(forKey: "saveLocation") {
                 return URL(fileURLWithPath: path)
             }
-            return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+            return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
         }
         set { store.set(newValue.path, forKey: "saveLocation") }
     }
@@ -56,12 +56,6 @@ class Defaults {
         set { store.set(newValue, forKey: "captureDelay") }
     }
 
-    // Hide desktop icons before capture
-    var hideDesktopIcons: Bool {
-        get { store.bool(forKey: "hideDesktopIcons") }
-        set { store.set(newValue, forKey: "hideDesktopIcons") }
-    }
-
     // Thumbnail position: "bottomRight" or "bottomLeft"
     var thumbnailPosition: String {
         get { store.string(forKey: "thumbnailPosition") ?? "bottomRight" }
@@ -83,12 +77,6 @@ class Defaults {
             store.set(newValue.rawValue, forKey: "shortcutProfile")
             postShortcutConfigurationDidChange()
         }
-    }
-
-    // Desktop icons currently hidden by user toggle (not capture-related)
-    var desktopIconsHidden: Bool {
-        get { store.bool(forKey: "desktopIconsHidden") }
-        set { store.set(newValue, forKey: "desktopIconsHidden") }
     }
 
     // GIF export settings

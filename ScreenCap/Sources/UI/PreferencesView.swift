@@ -40,7 +40,7 @@ class PreferencesWindowController: NSObject, NSWindowDelegate {
 
 struct PreferencesView: View {
     @StateObject private var launchAtLogin = LaunchAtLoginManager()
-    @AppStorage("saveLocation") private var saveLocationPath: String = NSHomeDirectory() + "/Desktop"
+    @AppStorage("saveLocation") private var saveLocationPath: String = NSHomeDirectory() + "/Downloads"
     @AppStorage("imageFormat") private var imageFormat: String = "png"
     @AppStorage("jpegQuality") private var jpegQuality: Double = 0.85
     @AppStorage("copyToClipboard") private var copyToClipboard: Bool = true
@@ -49,7 +49,6 @@ struct PreferencesView: View {
     @AppStorage("includeWindowShadow") private var includeWindowShadow: Bool = true
     @AppStorage("thumbnailDuration") private var thumbnailDuration: Double = 5.0
     @AppStorage("captureDelay") private var captureDelay: Int = 0
-    @AppStorage("hideDesktopIcons") private var hideDesktopIcons: Bool = false
     @AppStorage("thumbnailPosition") private var thumbnailPosition: String = "bottomRight"
     @AppStorage("freezeScreen") private var freezeScreen: Bool = true
     @AppStorage("gifMaxWidth") private var gifMaxWidth: Int = 640
@@ -190,15 +189,6 @@ struct PreferencesView: View {
             }
 
             Section {
-                Toggle("Hide desktop icons before capture", isOn: $hideDesktopIcons)
-                Text("Temporarily hides Finder desktop icons for a clean capture, then restores them.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } header: {
-                Text("Desktop")
-            }
-
-            Section {
                 Toggle("Include window shadow in window captures", isOn: $includeWindowShadow)
             } header: {
                 Text("Window Capture")
@@ -336,7 +326,7 @@ struct PreferencesView: View {
 
     private func resetAll() {
         let defaults = UserDefaults.standard
-        for key in ["saveLocation", "imageFormat", "jpegQuality", "copyToClipboard", "showThumbnail", "playSound", "includeWindowShadow", "thumbnailDuration", "captureDelay", "hideDesktopIcons", "thumbnailPosition", "freezeScreen", "gifMaxWidth", "gifFrameRate", "shortcutProfile", "recentCaptures"] {
+        for key in ["saveLocation", "imageFormat", "jpegQuality", "copyToClipboard", "showThumbnail", "playSound", "includeWindowShadow", "thumbnailDuration", "captureDelay", "thumbnailPosition", "freezeScreen", "gifMaxWidth", "gifFrameRate", "shortcutProfile", "recentCaptures"] {
             defaults.removeObject(forKey: key)
         }
         postShortcutConfigurationDidChange()

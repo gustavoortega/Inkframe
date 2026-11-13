@@ -130,28 +130,6 @@ class MenuBarController {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Desktop section
-        let desktopHeader = NSMenuItem(title: "DESKTOP", action: nil, keyEquivalent: "")
-        desktopHeader.isEnabled = false
-        desktopHeader.attributedTitle = NSAttributedString(
-            string: "DESKTOP",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
-                .foregroundColor: NSColor.tertiaryLabelColor
-            ]
-        )
-        menu.addItem(desktopHeader)
-
-        let desktopIconsHidden = Defaults.shared.desktopIconsHidden
-        let toggleIcons = makeItem(
-            desktopIconsHidden ? "Show Desktop Icons" : "Hide Desktop Icons",
-            icon: desktopIconsHidden ? "eye" : "eye.slash",
-            action: #selector(toggleDesktopIcons)
-        )
-        menu.addItem(toggleIcons)
-
-        menu.addItem(NSMenuItem.separator())
-
         // Recent Captures
         let recent = NSMenuItem(title: "Recent Captures", action: nil, keyEquivalent: "")
         recent.image = NSImage(systemSymbolName: "clock.arrow.circlepath", accessibilityDescription: nil)
@@ -383,26 +361,6 @@ class MenuBarController {
 
     @objc private func showAbout() {
         AboutWindowController.shared.show()
-    }
-
-    @objc private func toggleDesktopIcons() {
-        let isCurrentlyHidden = Defaults.shared.desktopIconsHidden
-        let newState = !isCurrentlyHidden
-        Defaults.shared.desktopIconsHidden = newState
-
-        let task = Process()
-        task.launchPath = "/usr/bin/defaults"
-        task.arguments = ["write", "com.apple.finder", "CreateDesktop", "-bool", newState ? "false" : "true"]
-        task.launch()
-        task.waitUntilExit()
-
-        let killTask = Process()
-        killTask.launchPath = "/usr/bin/killall"
-        killTask.arguments = ["Finder"]
-        killTask.launch()
-
-        rebuildMenu()
-        Toast.show(message: newState ? "Desktop icons hidden" : "Desktop icons restored")
     }
 
     @objc private func showAllInOne() {

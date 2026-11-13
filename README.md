@@ -100,6 +100,14 @@ cd screencap/ScreenCap
 swift build -c release
 ```
 
+To get a signed, sandboxed `.app` (no network entitlement), sign with a stable identity so the
+Screen Recording grant survives rebuilds:
+
+```bash
+SIGN_IDENTITY="<your code-signing identity>" ./scripts/bundle.sh
+open build/ScreenCap.app
+```
+
 ### Open in Xcode
 
 ```bash

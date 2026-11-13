@@ -8,23 +8,18 @@ class ScreenCaptureEngine {
 
     func captureFullscreen(completion: @escaping (Result<URL, Error>) -> Void) {
         performWithDelay {
-            self.hideDesktopIconsIfNeeded()
-
             DispatchQueue.main.async {
                 let mouse = NSEvent.mouseLocation
                 guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main else {
-                    self.restoreDesktopIconsIfNeeded()
                     completion(.failure(CaptureError.noDisplay))
                     return
                 }
 
                 guard let image = CGDisplayCreateImage(screen.displayID) else {
-                    self.restoreDesktopIconsIfNeeded()
                     completion(.failure(CaptureError.captureFailed))
                     return
                 }
 
-                self.restoreDesktopIconsIfNeeded()
                 self.flashScreen()
 
                 if self.defaults.playSound {
@@ -52,20 +47,15 @@ class ScreenCaptureEngine {
             switch result {
             case .success(let (rect, overlayWindowID)):
                 self.performWithDelay {
-                    self.hideDesktopIconsIfNeeded()
-
                     guard let image = CGWindowListCreateImage(
                         rect,
                         .optionOnScreenBelowWindow,
                         overlayWindowID,
                         [.bestResolution]
                     ) else {
-                        self.restoreDesktopIconsIfNeeded()
                         completion(.failure(CaptureError.captureFailed))
                         return
                     }
-
-                    self.restoreDesktopIconsIfNeeded()
 
                     if self.defaults.playSound {
                         NSSound(named: "Tink")?.play()
@@ -190,43 +180,6 @@ class ScreenCaptureEngine {
                 label.stringValue = "\(remaining)"
             }
         }
-    }
-
-    // MARK: - Hide Desktop Icons
-
-    private var desktopIconsWereHidden = false
-
-    private func hideDesktopIconsIfNeeded() {
-        guard defaults.hideDesktopIcons else { return }
-        desktopIconsWereHidden = true
-        let task = Process()
-        task.launchPath = "/usr/bin/defaults"
-        task.arguments = ["write", "com.apple.finder", "CreateDesktop", "-bool", "false"]
-        task.launch()
-        task.waitUntilExit()
-        restartFinder()
-        // Give Finder time to hide icons
-        Thread.sleep(forTimeInterval: 0.5)
-    }
-
-    private func restoreDesktopIconsIfNeeded() {
-        guard desktopIconsWereHidden else { return }
-        desktopIconsWereHidden = false
-        // If user has manually toggled desktop icons off, don't restore them
-        guard !Defaults.shared.desktopIconsHidden else { return }
-        let task = Process()
-        task.launchPath = "/usr/bin/defaults"
-        task.arguments = ["write", "com.apple.finder", "CreateDesktop", "-bool", "true"]
-        task.launch()
-        task.waitUntilExit()
-        restartFinder()
-    }
-
-    private func restartFinder() {
-        let task = Process()
-        task.launchPath = "/usr/bin/killall"
-        task.arguments = ["Finder"]
-        task.launch()
     }
 
     // MARK: - Flash Effect

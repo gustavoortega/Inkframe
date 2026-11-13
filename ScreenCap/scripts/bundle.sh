@@ -1,0 +1,21 @@
+#!/bin/bash
+# Builds ScreenCap.app from source and signs it with a stable identity.
+# A stable signature keeps the Screen Recording grant across rebuilds; ad-hoc signing would reset it every build.
+set -euo pipefail
+
+: "${SIGN_IDENTITY:?Set SIGN_IDENTITY to a code-signing identity (security find-identity -v -p codesigning)}"
+
+cd "$(dirname "$0")/.."
+swift build -c release
+
+APP="build/ScreenCap.app"
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp .build/release/ScreenCap "$APP/Contents/MacOS/ScreenCap"
+cp Resources/Info.plist "$APP/Contents/Info.plist"
+
+codesign --force --options runtime --timestamp=none \
+  --entitlements Resources/ScreenCap.entitlements \
+  --sign "$SIGN_IDENTITY" "$APP"
+codesign --verify --strict --verbose=1 "$APP"
+echo "Built $APP"
