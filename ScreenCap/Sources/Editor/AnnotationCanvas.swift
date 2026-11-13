@@ -10,6 +10,7 @@ class AnnotationCanvas: NSView {
     var currentColor: NSColor = .systemRed
     var currentLineWidth: CGFloat = 3
     var currentFilled: Bool = false
+    var currentFontSize: CGFloat = 16
     var onAnnotationsChanged: (() -> Void)?
     var onCropApplied: ((NSRect) -> Void)?
     var onCanvasSizeChanged: (() -> Void)?
@@ -369,7 +370,7 @@ class AnnotationCanvas: NSView {
         let textField = NSTextField(frame: NSRect(x: point.x, y: point.y - 10, width: 200, height: 24))
         textField.isBordered = false
         textField.drawsBackground = false
-        textField.font = .systemFont(ofSize: 16, weight: .medium)
+        textField.font = .systemFont(ofSize: currentFontSize, weight: .medium)
         textField.textColor = currentColor
         textField.focusRingType = .none
         textField.placeholderString = "Type here..."
@@ -398,8 +399,8 @@ class AnnotationCanvas: NSView {
 
         let annotation = Annotation(toolType: .text, color: currentColor, lineWidth: currentLineWidth)
         annotation.text = text
-        annotation.fontSize = 16
-        let textSize = (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 16, weight: .medium)])
+        annotation.fontSize = currentFontSize
+        let textSize = (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: currentFontSize, weight: .medium)])
         annotation.rect = NSRect(origin: NSPoint(x: origin.x, y: origin.y + 10), size: textSize)
         annotations.append(annotation)
         redoStack.removeAll()

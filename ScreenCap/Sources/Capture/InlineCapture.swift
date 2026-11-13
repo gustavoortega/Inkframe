@@ -77,18 +77,14 @@ final class InlineCaptureSession: NSObject {
     var onPin: ((NSImage) -> Void)?
     var onFinished: (() -> Void)?
 
-    private static let defaultColor = NSColor(srgbRed: 1, green: 0x05 / 255, blue: 0, alpha: 1)
-    private static let palette: [NSColor] = [
-        defaultColor, .systemOrange, .systemYellow, .systemGreen,
-        .systemBlue, .systemPurple, .black, .white,
-    ]
-
     private let frozen: CGImage
     private let window: InlineOverlayWindow
     private let canvas: InlineCanvas
     private let dimView: SelectionDimView
     private let toolbar = InlineToolbar()
-    private var paletteView: NSView?
+    private let hoverLabel = NSTextField(labelWithString: "")
+    private var settingsPanel: ToolSettingsPanel?
+    private var settings = InlineToolSettings.load()
     private var finished = false
 
     init(frozen: CGImage, screen: NSScreen) {
@@ -108,8 +104,9 @@ final class InlineCaptureSession: NSObject {
 
         canvas.baseImage = NSImage(cgImage: frozen, size: bounds.size)
         canvas.drawsBaseImage = false
-        canvas.currentColor = Self.defaultColor
-        canvas.currentLineWidth = 2
+        canvas.currentColor = settings.color
+        canvas.currentLineWidth = settings.lineWidth
+        canvas.currentFontSize = settings.fontSize
         canvas.currentTool = .select
         container.addSubview(canvas)
 
@@ -118,8 +115,15 @@ final class InlineCaptureSession: NSObject {
 
         toolbar.isHidden = true
         toolbar.setActiveTool(.select, filled: false)
-        toolbar.setColor(Self.defaultColor)
+        toolbar.setColor(settings.color)
         container.addSubview(toolbar)
+
+        hoverLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        hoverLabel.textColor = .white
+        hoverLabel.drawsBackground = true
+        hoverLabel.backgroundColor = NSColor.black.withAlphaComponent(0.8)
+        hoverLabel.isHidden = true
+        container.addSubview(hoverLabel)
 
         window.contentView = container
         window.level = .screenSaver
@@ -134,6 +138,14 @@ final class InlineCaptureSession: NSObject {
         canvas.onSave = { [weak self] in self?.saveAndClose() }
         canvas.onCancel = { [weak self] in self?.finish() }
         toolbar.onAction = { [weak self] action in self?.handle(action) }
+        toolbar.onHover = { [weak self] hover in self?.showHoverLabel(hover) }
+        toolbar.onSettings = { [weak self] action, frame in self?.openSettings(action, anchor: frame) }
+        canvas.onPointerDown = { [weak self] in self?.hideSettings() }
+        canvas.onLineWidthChanged = { [weak self] width in
+            guard let self else { return }
+            self.settings.lineWidth = width
+            self.settings.save()
+        }
     }
 
     func show() {
@@ -146,7 +158,8 @@ final class InlineCaptureSession: NSObject {
         dimView.selection = canvas.selection
         guard let selection = canvas.selection, !canvas.isAdjustingSelection else {
             toolbar.isHidden = true
-            hidePalette()
+            hoverLabel.isHidden = true
+            hideSettings()
             return
         }
         toolbar.position(for: selection, in: canvas.bounds)
@@ -160,9 +173,13 @@ final class InlineCaptureSession: NSObject {
             canvas.currentTool = tool
             canvas.currentFilled = filled
             toolbar.setActiveTool(tool, filled: filled)
-            hidePalette()
+            hideSettings()
         case .color:
-            paletteView == nil ? showPalette() : hidePalette()
+            if settingsPanel == nil {
+                showSettings(for: canvas.currentTool, anchor: toolbar.colorButtonFrame)
+            } else {
+                hideSettings()
+            }
         case .undo:
             canvas.endTextEditing()
             canvas.performUndo()
@@ -181,52 +198,57 @@ final class InlineCaptureSession: NSObject {
         window.makeFirstResponder(canvas)
     }
 
-    // MARK: Palette
+    private func openSettings(_ action: InlineToolbar.Action, anchor: NSRect) {
+        if case .tool = action { handle(action) }
+        showSettings(for: canvas.currentTool, anchor: anchor)
+    }
 
-    private func showPalette() {
-        let size: CGFloat = 22
-        let gap: CGFloat = 6
-        let view = NSView(frame: NSRect(x: 0, y: 0,
-                                        width: CGFloat(Self.palette.count) * (size + gap) + gap,
-                                        height: size + gap * 2))
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
-        view.layer?.cornerRadius = 8
-        for (index, color) in Self.palette.enumerated() {
-            let swatch = NSButton(frame: NSRect(x: gap + CGFloat(index) * (size + gap), y: gap, width: size, height: size))
-            swatch.isBordered = false
-            swatch.title = ""
-            swatch.wantsLayer = true
-            swatch.layer?.backgroundColor = color.cgColor
-            swatch.layer?.cornerRadius = size / 2
-            swatch.layer?.borderColor = NSColor.white.cgColor
-            swatch.layer?.borderWidth = color == canvas.currentColor ? 2 : 0.5
-            swatch.tag = index
-            swatch.target = self
-            swatch.action = #selector(pickColor(_:))
-            view.addSubview(swatch)
+    /// Names the hovered button just above the toolbar, or below it when there is no room.
+    private func showHoverLabel(_ hover: (String, NSRect)?) {
+        guard let (tip, buttonFrame) = hover, !toolbar.isHidden, settingsPanel == nil else {
+            hoverLabel.isHidden = true
+            return
         }
-        let anchor = toolbar.convert(toolbar.colorButtonFrame, to: toolbar.superview)
-        var origin = NSPoint(x: anchor.midX - view.frame.width / 2, y: toolbar.frame.maxY + 8)
-        if origin.y + view.frame.height > canvas.bounds.maxY { origin.y = toolbar.frame.minY - view.frame.height - 8 }
-        origin.x = min(max(origin.x, 8), canvas.bounds.maxX - view.frame.width - 8)
-        view.setFrameOrigin(origin)
-        toolbar.superview?.addSubview(view)
-        paletteView = view
+        hoverLabel.stringValue = " \(tip) "
+        hoverLabel.sizeToFit()
+        let anchor = toolbar.convert(buttonFrame, to: toolbar.superview)
+        var origin = NSPoint(x: anchor.midX - hoverLabel.frame.width / 2, y: toolbar.frame.maxY + 6)
+        if origin.y + hoverLabel.frame.height > canvas.bounds.maxY {
+            origin.y = toolbar.frame.minY - hoverLabel.frame.height - 6
+        }
+        origin.x = min(max(origin.x, 8), canvas.bounds.maxX - hoverLabel.frame.width - 8)
+        hoverLabel.setFrameOrigin(origin)
+        hoverLabel.isHidden = false
     }
 
-    private func hidePalette() {
-        paletteView?.removeFromSuperview()
-        paletteView = nil
+    // MARK: Tool settings
+
+    private func showSettings(for tool: AnnotationToolType, anchor buttonFrame: NSRect) {
+        hideSettings()
+        let panel = ToolSettingsPanel(settings: settings, editsFontSize: tool == .text)
+        panel.onChange = { [weak self] updated in self?.apply(updated) }
+        let anchor = toolbar.convert(buttonFrame, to: toolbar.superview)
+        var origin = NSPoint(x: anchor.midX - panel.frame.width / 2, y: toolbar.frame.maxY + 8)
+        if origin.y + panel.frame.height > canvas.bounds.maxY { origin.y = toolbar.frame.minY - panel.frame.height - 8 }
+        origin.x = min(max(origin.x, 8), canvas.bounds.maxX - panel.frame.width - 8)
+        panel.setFrameOrigin(origin)
+        toolbar.superview?.addSubview(panel)
+        settingsPanel = panel
+        hoverLabel.isHidden = true
     }
 
-    @objc private func pickColor(_ sender: NSButton) {
-        guard Self.palette.indices.contains(sender.tag) else { return }
-        let color = Self.palette[sender.tag]
-        canvas.currentColor = color
-        toolbar.setColor(color)
-        hidePalette()
-        window.makeFirstResponder(canvas)
+    private func hideSettings() {
+        settingsPanel?.removeFromSuperview()
+        settingsPanel = nil
+    }
+
+    private func apply(_ updated: InlineToolSettings) {
+        settings = updated
+        settings.save()
+        canvas.currentColor = updated.color
+        canvas.currentLineWidth = updated.lineWidth
+        canvas.currentFontSize = updated.fontSize
+        toolbar.setColor(updated.color)
     }
 
     // MARK: Output
@@ -267,7 +289,7 @@ final class InlineCaptureSession: NSObject {
     private func finish() {
         guard !finished else { return }
         finished = true
-        hidePalette()
+        hideSettings()
         window.orderOut(nil)
         window.contentView = nil
         onFinished?()
@@ -363,6 +385,8 @@ final class InlineCanvas: AnnotationCanvas {
     var onCopy: (() -> Void)?
     var onSave: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onLineWidthChanged: ((CGFloat) -> Void)?
+    var onPointerDown: (() -> Void)?
 
     private var drag: Drag = .none
     private var scrollAccumulator: CGFloat = 0
@@ -390,6 +414,7 @@ final class InlineCanvas: AnnotationCanvas {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
+        onPointerDown?()
         let point = clamp(convert(event.locationInWindow, from: nil))
         guard let current = selection else {
             beginCreating(at: point)
@@ -459,8 +484,10 @@ final class InlineCanvas: AnnotationCanvas {
     override func scrollWheel(with event: NSEvent) {
         scrollAccumulator += event.scrollingDeltaY
         guard abs(scrollAccumulator) >= 4 else { return }
-        currentLineWidth = min(max(currentLineWidth + (scrollAccumulator > 0 ? 1 : -1), 1), 20)
+        currentLineWidth = InlineToolSettings.clamp(currentLineWidth + (scrollAccumulator > 0 ? 1 : -1),
+                                                    to: InlineToolSettings.lineWidthRange)
         scrollAccumulator = 0
+        onLineWidthChanged?(currentLineWidth)
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {

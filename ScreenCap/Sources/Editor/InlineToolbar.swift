@@ -30,7 +30,7 @@ final class InlineToolbar: NSView {
         Item(action: .tool(.numberedStep, filled: false), symbol: "1.circle", tip: "Counter"),
         Item(action: .tool(.blur, filled: false), symbol: "checkerboard.rectangle", tip: "Pixelate"),
         Item(action: .tool(.select, filled: false), symbol: "arrow.up.and.down.and.arrow.left.and.right", tip: "Move annotation or selection"),
-        Item(action: .color, symbol: "circle.fill", tip: "Color (scroll to change thickness)"),
+        Item(action: .color, symbol: "circle.fill", tip: "Color and size (or right-click a tool)"),
         Item(action: .undo, symbol: "arrow.uturn.backward", tip: "Undo (Cmd+Z)"),
         Item(action: .redo, symbol: "arrow.uturn.forward", tip: "Redo (Cmd+Shift+Z)"),
         Item(action: .copy, symbol: "doc.on.doc", tip: "Copy (Cmd+C)"),
@@ -40,7 +40,12 @@ final class InlineToolbar: NSView {
     ]
 
     var onAction: ((Action) -> Void)?
-    private var buttons: [NSButton] = []
+    /// Tip of the hovered button and its frame in toolbar coordinates; nil when the pointer leaves.
+    /// The overlay draws its own label because system tooltips render below a screen-saver-level window.
+    var onHover: ((String, NSRect)?) -> Void = { _ in }
+    /// Right-click on a tool, or click on the color button: open that tool's color and size settings.
+    var onSettings: ((Action, NSRect) -> Void)?
+    private var buttons: [ToolbarButton] = []
     private var colorButton: NSButton?
 
     init() {
@@ -61,14 +66,23 @@ final class InlineToolbar: NSView {
         fatalError("init(coder:) not implemented")
     }
 
-    private func makeButton(item: Item, index: Int) -> NSButton {
-        let button = NSButton(frame: NSRect(x: 0, y: 0, width: Self.buttonSize, height: Self.buttonSize))
+    private func makeButton(item: Item, index: Int) -> ToolbarButton {
+        let button = ToolbarButton(frame: NSRect(x: 0, y: 0, width: Self.buttonSize, height: Self.buttonSize))
         button.isBordered = false
         button.wantsLayer = true
         button.layer?.cornerRadius = Self.buttonSize / 2
-        button.layer?.backgroundColor = Self.accent.cgColor
         button.contentTintColor = .white
-        button.toolTip = item.tip
+        button.onRightClick = { [weak self, weak button] in
+            guard let self, let button else { return }
+            switch item.action {
+            case .tool, .color: self.onSettings?(item.action, button.frame)
+            default: break
+            }
+        }
+        button.onHover = { [weak self, weak button] inside in
+            guard let self, let button else { return }
+            self.onHover(inside ? (item.tip, button.frame) : nil)
+        }
         button.tag = index
         button.target = self
         button.action = #selector(buttonPressed(_:))
@@ -93,8 +107,7 @@ final class InlineToolbar: NSView {
         for (index, item) in items.enumerated() {
             var active = false
             if case .tool(let t, let f) = item.action { active = (t == tool && f == filled) }
-            buttons[index].layer?.borderWidth = active ? 2 : 0
-            buttons[index].layer?.borderColor = NSColor.white.cgColor
+            buttons[index].isActive = active
         }
     }
 
@@ -117,5 +130,59 @@ final class InlineToolbar: NSView {
             }
         }
         setFrameOrigin(NSPoint(x: x, y: y))
+    }
+}
+
+/// Round toolbar button: lighter fill and a thin ring on hover, thick ring when it is the active tool.
+private final class ToolbarButton: NSButton {
+    var onHover: ((Bool) -> Void)?
+    var onRightClick: (() -> Void)?
+    var isActive = false { didSet { refresh() } }
+    private var isHovered = false { didSet { refresh() } }
+    private var hoverArea: NSTrackingArea?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        refresh()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) not implemented")
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverArea { removeTrackingArea(hoverArea) }
+        let area = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
+        addTrackingArea(area)
+        hoverArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        onHover?(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        onHover?(false)
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        onRightClick?()
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    private func refresh() {
+        let fill = isHovered ? InlineToolbar.accent.blended(withFraction: 0.35, of: .white) ?? InlineToolbar.accent : InlineToolbar.accent
+        layer?.backgroundColor = fill.cgColor
+        layer?.borderColor = NSColor.white.cgColor
+        layer?.borderWidth = isActive ? 2 : (isHovered ? 1 : 0)
     }
 }
