@@ -1,196 +1,56 @@
-<p align="center">
-  <img src="docs/icon.png" alt="Inkframe icon" width="96" height="96">
-</p>
+<img src="docs/icon.png" alt="Inkframe icon" width="96" height="96">
 
-<h1 align="center">Inkframe — Free macOS Screenshot & Screen Recording App</h1>
+# Inkframe
 
-<p align="center">
-  Fork of <a href="https://github.com/8tp/ScreenCap">ScreenCap</a> by Hunter Meherin (MIT). Adds flameshot-style in-place annotation on Cmd+Shift+X and runs sandboxed with no network access.
-</p>
+Screenshot and annotation tool for macOS. Press Cmd+Shift+X, select an area, draw on it in place and press Cmd+C. It works like flameshot, as a native app that runs sandboxed with no network access.
 
-<p align="center">
-  <strong>The open-source CleanShot X alternative for macOS.</strong><br>
-  Screenshots, screen recording, annotation, OCR, scrolling capture, GIF export & color picker — all free, all local.
-</p>
+Fork of [ScreenCap](https://github.com/8tp/ScreenCap) by Hunter Meherin (MIT).
 
-<p align="center">
-  <img src="https://img.shields.io/badge/platform-macOS_14+-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+">
-  <img src="https://img.shields.io/badge/swift-5.9+-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9+">
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License">
-  <img src="https://img.shields.io/badge/dependencies-1-brightgreen?style=flat-square" alt="Dependencies: 1">
-  <img src="https://img.shields.io/badge/size-~2MB-purple?style=flat-square" alt="Size ~2MB">
-  <img src="https://img.shields.io/badge/network-none-gray?style=flat-square" alt="No network">
-</p>
+## Install
 
-<p align="center">
-  <em>No account. No subscription. No telemetry. Just screenshots.</em>
-</p>
-
----
-
-## Why Inkframe over CleanShot X, Snagit, or macOS Screenshots?
-
-|  | Paid Tools (CleanShot X, Snagit) | macOS Built-in | **Inkframe** |
-|:--|:--:|:--:|:--:|
-| Price | $29–89/yr | Free | **Free forever** |
-| Area capture with dimensions | Yes | No | **Yes** |
-| Annotation editor | Yes | Markup only | **Yes** |
-| Scrolling capture | Yes | No | **Yes** |
-| Screen recording | Yes | Yes | **Yes** |
-| OCR text extraction | Yes | No | **Yes** |
-| Color picker | Yes | No | **Yes** |
-| Pin to desktop | Yes | No | **Yes** |
-| GIF export | Yes | No | **Yes** |
-| Open source | No | No | **Yes** |
-| Privacy (no network) | Varies | Yes | **Yes** |
-
----
-
-## Features
-
-### Capture
-- **Fullscreen** -- Instant full-screen capture with flash & sound
-- **Area Select** -- Crosshair overlay with live pixel dimensions, shift-to-square
-- **Window** -- Hover to highlight, click to capture (with optional shadow)
-- **Scrolling** -- Auto-scroll and stitch into a single tall image
-
-### Record
-- **Screen Recording** -- Full screen or selected area to MP4 (H.264)
-- **GIF Export** -- Convert any recording to GIF with configurable FPS and size
-- **Recording Toolbar** -- Floating pause/stop/timer controls
-
-### Tools
-- **OCR** -- Select a region, extract text to clipboard via Apple Vision
-- **Color Picker** -- Magnifier loupe with hex/RGB, click to copy
-
-### Edit
-- **Annotation Editor** -- Arrow, rectangle, ellipse, line, text, freehand, highlight, blur/pixelate, numbered steps, crop
-- **Undo/Redo** -- Full undo stack for all annotation actions
-- **Export** -- Save as PNG, JPEG, or TIFF
-
-### Extras
-- **Floating Thumbnail** -- Post-capture preview with drag-and-drop to any app
-- **Pin to Desktop** -- Always-on-top pinned screenshots with adjustable opacity
-- **Launch at Login** -- Optional startup toggle from Preferences for installed app bundles
-- **Toast Notifications** -- Non-intrusive confirmation messages
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|:---------|:-------|
-| `Ctrl+Shift+1` | Open the all-in-one capture toolbar |
-| `Ctrl+Shift+3` | Capture Fullscreen |
-| `Ctrl+Shift+4` | Capture Area |
-| `Ctrl+Shift+5` | Capture Window |
-| `Ctrl+Shift+6` | Capture Scrolling |
-| `Ctrl+Shift+7` | Record Screen |
-| `Ctrl+Shift+8` | Record Area |
-| `Ctrl+Shift+9` | OCR Screen Region |
-| `Ctrl+Shift+0` | Color Picker |
-
-Inkframe now defaults to a conflict-free shortcut profile on first launch so it does not fire alongside Apple's built-in screenshot shortcuts. You can switch to a `Cmd+Shift` compatibility profile in Preferences, but macOS screenshot shortcuts should be disabled first if you do.
-
----
-
-## Installation
-
-### Build from Source
+There is no download: a prebuilt app needs a Developer ID signature and notarization, which this project doesn't have. You build it yourself, with Xcode installed and macOS 14 or later.
 
 ```bash
 git clone https://github.com/gustavoortega/Inkframe.git
 cd Inkframe/Inkframe
-swift build -c release
+security find-identity -v -p codesigning
+SIGN_IDENTITY="<identity from the list above>" ./scripts/bundle.sh
+ditto build/Inkframe.app /Applications/Inkframe.app
+open /Applications/Inkframe.app
 ```
 
-To get a signed, sandboxed `.app` (no network entitlement), sign with a stable identity so the
-Screen Recording grant survives rebuilds:
+Sign with a stable identity. macOS ties the Screen Recording grant to the signature, so with ad-hoc signing (`SIGN_IDENTITY=-`) every rebuild asks for the permission again. Any Apple ID gets a free Apple Development certificate in Xcode > Settings > Accounts > Manage Certificates.
+
+On the first capture macOS asks for Screen Recording. To start it with your session, turn on "Launch Inkframe at login" in Preferences, from the menu bar icon.
+
+## Use
+
+- Cmd+Shift+X opens the capture on the display you are working on.
+- Drag to select, and drag the handles to resize.
+- Pick a tool in the toolbar. Right-click a tool to change its color, thickness or font size; the scroll wheel also changes thickness.
+- Cmd+C or Enter copies and closes. Cmd+S saves to Downloads. Esc cancels. Cmd+Z and Cmd+Shift+Z undo and redo.
+- Pin keeps the capture floating on screen; right-click it to close it.
+
+The menu bar icon keeps ScreenCap's other modes (full screen, window, scrolling capture, recording, OCR). They come from upstream and this fork's tests don't cover them.
+
+## Security
+
+- App Sandbox without the network entitlement, so the app can't open connections.
+- Writes only to Downloads or folders you pick. A Cmd+Shift+X capture stays in memory until you copy or save it, and saved files get mode 0600 and never overwrite an existing file.
+- It doesn't spawn processes.
+
+A save folder chosen in Preferences is stored as a plain path, which the sandbox doesn't grant again after a relaunch. Downloads always works.
+
+## Develop
 
 ```bash
-SIGN_IDENTITY="<your code-signing identity>" ./scripts/bundle.sh
-open build/Inkframe.app
+cd Inkframe
+swift build
+swift test
 ```
 
-### Open in Xcode
-
-```bash
-cd Inkframe/Inkframe
-open Package.swift
-# Set signing to "Sign to Run Locally"
-# Build and run (Cmd+R)
-```
-
-### Requirements
-- macOS 14 (Sonoma) or later
-- Xcode 15+ (for building)
-- Screen Recording permission (prompted on first use)
-
----
-
-## Architecture
-
-```
-Inkframe/Sources/
-  App/           App lifecycle, menubar, permissions
-  Capture/       Screenshot engine, area/window/scroll capture, recording, GIF
-  Editor/        Annotation editor, canvas, 10 drawing tools, background presets
-  Tools/         OCR (Vision), color picker, magnifier
-  UI/            Floating thumbnail, pin window, preferences, onboarding, toasts
-  Utilities/     Global hotkeys, image I/O, user defaults
-```
-
-### Runtime Flow
-
-1. `MenuBarController` receives menu and hotkey actions.
-2. Capture actions route into `ScreenCaptureEngine`, `ScreenRecorder`, `ScrollCapture`, `OCRTool`, or `ColorPickerTool`.
-3. Captures and recordings feed `FloatingThumbnailController`.
-4. Thumbnails can open `AnnotationEditorController` or pin images to the desktop.
-5. `PreferencesView` updates shared defaults and shortcut configuration.
-
-### Tech Stack
-
-| Layer | Technology |
-|:------|:-----------|
-| UI Framework | SwiftUI + AppKit |
-| Screen Capture | ScreenCaptureKit / CGWindowListCreateImage |
-| Recording | AVFoundation + AVAssetWriter |
-| OCR | Vision (VNRecognizeTextRequest) |
-| Image Filters | CoreImage (CIPixellate, CIGaussianBlur) |
-| Global Hotkeys | [soffes/HotKey](https://github.com/soffes/HotKey) |
-| Persistence | UserDefaults |
-
----
-
-## Preferences
-
-| Tab | Settings |
-|:----|:---------|
-| **General** | Save location, launch at login, image format (PNG/JPEG/TIFF), JPEG quality, clipboard/thumbnail/sound toggles |
-| **Capture** | Capture delay, hide desktop icons, window shadow |
-| **Shortcuts** | Switch between conflict-free `Ctrl+Shift` and macOS-style `Cmd+Shift` shortcut profiles |
-| **Advanced** | Thumbnail position & duration, reset all |
-
----
-
-## Privacy
-
-Inkframe makes **zero network calls**. Everything runs locally on your Mac. No accounts, no analytics, no tracking. Your screenshots never leave your machine.
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
+`scripts/make-icon.sh` regenerates the app icon from `scripts/make-icon.swift`.
 
 ## License
 
-[MIT](LICENSE) -- free for personal and commercial use.
-
----
-
-<p align="center">
-  <sub>Inkframe — the free, open-source screenshot tool for macOS. Built with Swift, SwiftUI, and AppKit.</sub>
-</p>
+MIT, see [LICENSE](LICENSE).
