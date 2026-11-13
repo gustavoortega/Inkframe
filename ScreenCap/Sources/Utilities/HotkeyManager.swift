@@ -13,6 +13,7 @@ class HotkeyManager {
     var onOCR: (() -> Void)?
     var onColorPicker: (() -> Void)?
     var onAllInOne: (() -> Void)?
+    var onInlineCapture: (() -> Void)?
 
     func registerAll() {
         unregisterAll()
@@ -21,6 +22,10 @@ class HotkeyManager {
             register(key: shortcut.key, modifiers: shortcut.modifiers) { [weak self] in
                 self?.handler(for: shortcut.action)?()
             }
+        }
+        // Fixed flameshot-compatible binding, independent of the modifier profile.
+        register(key: .x, modifiers: [.command, .shift]) { [weak self] in
+            self?.onInlineCapture?()
         }
     }
 

@@ -3,11 +3,11 @@ import Cocoa
 class PinnedImageWindow {
     private var window: NSPanel?
     private let image: NSImage
-    private let imageURL: URL
+    /// Lets the owner drop its reference; otherwise every closed pin keeps its image alive.
+    var onClosed: (() -> Void)?
 
-    init(image: NSImage, imageURL: URL) {
+    init(image: NSImage) {
         self.image = image
-        self.imageURL = imageURL
     }
 
     func show() {
@@ -30,7 +30,7 @@ class PinnedImageWindow {
         panel.contentAspectRatio = size
         panel.center()
 
-        let view = PinnedImageView(frame: NSRect(origin: .zero, size: size), image: image, imageURL: imageURL)
+        let view = PinnedImageView(frame: NSRect(origin: .zero, size: size), image: image)
         view.onClose = { [weak self] in
             self?.close()
         }
@@ -43,6 +43,7 @@ class PinnedImageWindow {
     func close() {
         window?.orderOut(nil)
         window = nil
+        onClosed?()
     }
 }
 
@@ -55,11 +56,9 @@ private class NonActivatingPanel: NSPanel {
 class PinnedImageView: NSView {
     var onClose: (() -> Void)?
     private let image: NSImage
-    private let imageURL: URL
 
-    init(frame: NSRect, image: NSImage, imageURL: URL) {
+    init(frame: NSRect, image: NSImage) {
         self.image = image
-        self.imageURL = imageURL
         super.init(frame: frame)
         autoresizingMask = [.width, .height]
     }

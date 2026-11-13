@@ -25,6 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var scrollCapture: ScrollCapture!
     private var onboardingController: OnboardingWindowController!
     private var captureToolbar: CaptureToolbarController!
+    private var inlineCapture: InlineCaptureController!
     private var pinnedWindows: [PinnedImageWindow] = []
     private var shortcutSettingsObserver: NSObjectProtocol?
     private var workspaceActivationObserver: NSObjectProtocol?
@@ -42,6 +43,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager = HotkeyManager()
         onboardingController = OnboardingWindowController()
         captureToolbar = CaptureToolbarController()
+        inlineCapture = InlineCaptureController()
+        inlineCapture.onPin = { [weak self] image in
+            self?.pin(image)
+        }
 
         thumbnailController.onEdit = { [weak self] url in
             self?.editorController.open(imageURL: url)
@@ -112,6 +117,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupHotkeys() {
         hotkeyManager.onCaptureFullscreen = { [weak self] in
             self?.menuBarController.triggerCaptureFullscreen()
+        }
+        hotkeyManager.onInlineCapture = { [weak self] in
+            self?.inlineCapture.start()
         }
         hotkeyManager.onCaptureArea = { [weak self] in
             self?.menuBarController.triggerCaptureArea()
@@ -188,7 +196,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func pinImage(url: URL) {
         guard let image = NSImage(contentsOf: url) else { return }
-        let pinned = PinnedImageWindow(image: image, imageURL: url)
+        pin(image)
+    }
+
+    private func pin(_ image: NSImage) {
+        let pinned = PinnedImageWindow(image: image)
+        pinned.onClosed = { [weak self, weak pinned] in
+            self?.pinnedWindows.removeAll { $0 === pinned }
+        }
         pinned.show()
         pinnedWindows.append(pinned)
     }

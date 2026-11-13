@@ -13,6 +13,8 @@ class AnnotationCanvas: NSView {
     var onAnnotationsChanged: (() -> Void)?
     var onCropApplied: ((NSRect) -> Void)?
     var onCanvasSizeChanged: (() -> Void)?
+    /// The in-place overlay paints the frozen screen through a layer, so the canvas only draws annotations.
+    var drawsBaseImage = true
 
     private struct UndoState {
         let image: NSImage?
@@ -46,24 +48,11 @@ class AnnotationCanvas: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        if let image = baseImage {
+        if drawsBaseImage, let image = baseImage {
             image.draw(in: bounds)
         }
 
-        // Draw blur annotations
-        for annotation in annotations where annotation.toolType == .blur {
-            drawBlur(annotation: annotation, in: context)
-        }
-
-        // Live blur preview while dragging
-        if let active = activeAnnotation, active.toolType == .blur {
-            drawBlur(annotation: active, in: context)
-        }
-
-        // Draw all other annotations (except crop and blur)
-        for annotation in annotations where annotation.toolType != .blur && annotation.toolType != .crop {
-            annotation.draw(in: context, viewBounds: bounds)
-        }
+        drawAnnotations(in: context, activeBlur: activeAnnotation)
 
         // Draw active annotation being created (except blur which is drawn above, and crop)
         if let active = activeAnnotation, active.toolType != .blur, active.toolType != .crop {
@@ -78,6 +67,19 @@ class AnnotationCanvas: NSView {
         }
     }
 
+    /// Committed annotations, blur first so strokes stay readable on top of it. Shared by the live view and every export path.
+    func drawAnnotations(in context: CGContext, activeBlur: Annotation? = nil) {
+        for annotation in annotations where annotation.toolType == .blur {
+            drawBlur(annotation: annotation, in: context)
+        }
+        if let active = activeBlur, active.toolType == .blur {
+            drawBlur(annotation: active, in: context)
+        }
+        for annotation in annotations where annotation.toolType != .blur && annotation.toolType != .crop {
+            annotation.draw(in: context, viewBounds: bounds)
+        }
+    }
+
     private func drawBlur(annotation: Annotation, in context: CGContext) {
         guard annotation.rect.width > 0, annotation.rect.height > 0 else { return }
 
@@ -86,9 +88,10 @@ class AnnotationCanvas: NSView {
             return
         }
 
+        // Read the backing CGImage directly: a TIFF round trip re-encodes the whole image on every drag event.
         guard let image = baseImage,
-              let tiffData = image.tiffRepresentation,
-              let ciImage = CIImage(data: tiffData) else { return }
+              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        let ciImage = CIImage(cgImage: cgImage)
 
         let scaleX = ciImage.extent.width / bounds.width
         let scaleY = ciImage.extent.height / bounds.height
@@ -541,14 +544,7 @@ class AnnotationCanvas: NSView {
         let scaleX = size.width / bounds.width
         let scaleY = size.height / bounds.height
         context.scaleBy(x: scaleX, y: scaleY)
-
-        for annotation in annotations where annotation.toolType == .blur {
-            drawBlur(annotation: annotation, in: context)
-        }
-
-        for annotation in annotations where annotation.toolType != .blur && annotation.toolType != .crop {
-            annotation.draw(in: context, viewBounds: bounds)
-        }
+        drawAnnotations(in: context)
 
         finalImage.unlockFocus()
         return finalImage
