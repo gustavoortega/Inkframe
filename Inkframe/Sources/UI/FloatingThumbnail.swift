@@ -103,9 +103,7 @@ class FloatingThumbnailController {
         }
         view.onCopy = {
             if let img = NSImage(contentsOf: imageURL) {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.writeObjects([img])
+                Clipboard.write([img])
                 Toast.show(message: "Copied to clipboard")
             }
         }

@@ -10,6 +10,7 @@ enum AnnotationToolType: String, CaseIterable {
     case freehand = "Freehand"
     case highlight = "Highlight"
     case blur = "Blur"
+    case redact = "Redact"
     case numberedStep = "Step"
     case crop = "Crop"
 
@@ -24,6 +25,7 @@ enum AnnotationToolType: String, CaseIterable {
         case .freehand: return "pencil.tip"
         case .highlight: return "highlighter"
         case .blur: return "eye.slash"
+        case .redact: return "rectangle.inset.filled"
         case .numberedStep: return "1.circle"
         case .crop: return "crop"
         }
@@ -79,6 +81,10 @@ class Annotation {
             drawHighlight(in: context)
         case .blur:
             break // blur is handled separately on the image
+        case .redact:
+            // Opaque on purpose: ignores color, width and fill so nothing shows through.
+            context.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+            context.fill(rect)
         case .numberedStep:
             drawNumberedStep(in: context)
         case .crop:

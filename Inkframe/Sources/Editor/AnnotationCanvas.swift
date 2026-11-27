@@ -104,8 +104,13 @@ class AnnotationCanvas: NSView {
         )
 
         guard let pixellateFilter = CIFilter(name: "CIPixellate") else { return }
-        pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
-        pixellateFilter.setValue(max(ciRect.width, ciRect.height) / 10, forKey: kCIInputScaleKey)
+        // One block must span a text line (<=16 pt) or the text stays readable; capped so big boxes don't go flat.
+        let floor = min(min(ciRect.width, ciRect.height), 16 * scaleX)
+        let scale = max(max(ciRect.width, ciRect.height) / 10, floor)
+        // Unclamped, cells past the image edge come out transparent and the original pixels show through.
+        pixellateFilter.setValue(ciImage.clampedToExtent(), forKey: kCIInputImageKey)
+        pixellateFilter.setValue(scale, forKey: kCIInputScaleKey)
+        pixellateFilter.setValue(CIVector(x: ciRect.minX, y: ciRect.minY), forKey: kCIInputCenterKey)
 
         guard let outputImage = pixellateFilter.outputImage else { return }
         let croppedBlur = outputImage.cropped(to: ciRect)
@@ -356,9 +361,7 @@ class AnnotationCanvas: NSView {
 
     private func copyToClipboard() {
         guard let image = renderFinalImage() else { return }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects([image])
+        Clipboard.write([image])
         Toast.show(message: "Copied to clipboard")
     }
 
