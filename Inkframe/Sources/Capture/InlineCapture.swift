@@ -379,7 +379,9 @@ final class InlineCanvas: AnnotationCanvas {
         case resizing(SelectionHandle, NSRect)
     }
 
-    private(set) var selection: NSRect?
+    private(set) var selection: NSRect? {
+        didSet { window?.invalidateCursorRects(for: self) }
+    }
     private(set) var isAdjustingSelection = false
     var onSelectionChanged: (() -> Void)?
     var onCopy: (() -> Void)?
@@ -388,7 +390,9 @@ final class InlineCanvas: AnnotationCanvas {
     var onLineWidthChanged: ((CGFloat) -> Void)?
     var onPointerDown: (() -> Void)?
 
-    private var drag: Drag = .none
+    private var drag: Drag = .none {
+        didSet { window?.invalidateCursorRects(for: self) }
+    }
     private var scrollAccumulator: CGFloat = 0
     private static let handleRadius: CGFloat = 8
     private static let minimumSide: CGFloat = 3
@@ -407,8 +411,48 @@ final class InlineCanvas: AnnotationCanvas {
         window?.makeFirstResponder(self)
     }
 
+    override var currentTool: AnnotationToolType {
+        didSet { window?.invalidateCursorRects(for: self) }
+    }
+
+    // AppKit gives the last added rect priority, so the order mirrors mouseDown in reverse: crosshair, move, resize.
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)
+        if case .creating = drag { return }
+        guard let selection else { return }
+        if currentTool == .select {
+            let moving: Bool
+            if case .moving = drag { moving = true } else { moving = false }
+            addCursorRect(selection, cursor: moving ? .closedHand : .openHand)
+        }
+        let side = Self.handleRadius * 2
+        for (handle, point) in Self.handlePoints(selection) {
+            let rect = NSRect(x: point.x - Self.handleRadius, y: point.y - Self.handleRadius, width: side, height: side)
+            addCursorRect(rect, cursor: Self.resizeCursor(for: handle))
+        }
+    }
+
+    private static func resizeCursor(for handle: SelectionHandle) -> NSCursor {
+        if #available(macOS 15, *) {
+            let position: NSCursor.FrameResizePosition
+            switch handle {
+            case .bottomLeft: position = .bottomLeft
+            case .bottom: position = .bottom
+            case .bottomRight: position = .bottomRight
+            case .right: position = .right
+            case .topRight: position = .topRight
+            case .top: position = .top
+            case .topLeft: position = .topLeft
+            case .left: position = .left
+            }
+            return .frameResize(position: position, directions: .all)
+        }
+        switch handle {
+        case .left, .right: return .resizeLeftRight
+        case .top, .bottom: return .resizeUpDown
+        // macOS 14 has no public diagonal resize cursor.
+        case .bottomLeft, .bottomRight, .topLeft, .topRight: return .crosshair
+        }
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -562,6 +606,13 @@ final class SelectionDimView: NSView {
     var selection: NSRect? { didSet { needsDisplay = true } }
     var pixelScale: CGFloat = 1
 
+    // Not the system monospaced font: on macOS 27.2.1 measuring with it intermittently throws inside CoreText
+    // (ApplyFont, "attempt to insert nil object") and the uncaught ObjC exception kills the app mid-selection.
+    private static let labelAttributes: [NSAttributedString.Key: Any] = [
+        .foregroundColor: NSColor.white,
+        .font: NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11) ?? NSFont.systemFont(ofSize: 11),
+    ]
+
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -588,10 +639,7 @@ final class SelectionDimView: NSView {
         }
 
         let label = "\(Int((selection.width * pixelScale).rounded())) × \(Int((selection.height * pixelScale).rounded()))"
-        let attrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.white,
-            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
-        ]
+        let attrs = Self.labelAttributes
         let size = (label as NSString).size(withAttributes: attrs)
         var origin = NSPoint(x: selection.minX, y: selection.maxY + 6)
         if origin.y + size.height > bounds.maxY { origin.y = selection.maxY - size.height - 6 }
