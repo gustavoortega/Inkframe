@@ -7,33 +7,60 @@ import UniformTypeIdentifiers
 final class InlineCaptureController {
     var onPin: ((NSImage) -> Void)?
     private var session: InlineCaptureSession?
+    private var screen: NSScreen?
+    private var previousApp: NSRunningApplication?
     private var starting = false
 
     func start() {
         guard session == nil, !starting, let screen = Self.focusedScreen() else { return }
+        previousApp = NSWorkspace.shared.frontmostApplication
+        open(screen, selection: nil)
+    }
+
+    /// Freezes `screen` and shows the overlay there, replacing the current session only once the capture succeeded.
+    private func open(_ screen: NSScreen, selection: NSRect?) {
         starting = true
-        let previousApp = NSWorkspace.shared.frontmostApplication
+        let requester = session
         Task { @MainActor [weak self] in
             defer { self?.starting = false }
             do {
                 let frozen = try await Self.captureDisplay(screen)
-                self?.present(frozen: frozen, screen: screen, previousApp: previousApp)
+                // Esc during a switch ends the capture; a late frame must not reopen it.
+                guard let self, self.session === requester else { return }
+                self.present(frozen: frozen, screen: screen, selection: selection)
             } catch {
                 Toast.show(message: "Capture failed. Check Screen Recording permission.", style: .error)
             }
         }
     }
 
-    private func present(frozen: CGImage, screen: NSScreen, previousApp: NSRunningApplication?) {
-        let session = InlineCaptureSession(frozen: frozen, screen: screen)
+    private func present(frozen: CGImage, screen: NSScreen, selection: NSRect?) {
+        session?.close()
+        let session = InlineCaptureSession(frozen: frozen, screen: screen, selection: selection)
         session.onPin = { [weak self] image in self?.onPin?(image) }
+        session.onSwitchDisplay = { [weak self] selection in self?.switchDisplay(carrying: selection) }
         session.onFinished = { [weak self] in
+            guard let self else { return }
             // Dropping the session releases the frozen full-display image.
-            self?.session = nil
-            if let previousApp, !previousApp.isTerminated { previousApp.activate() }
+            self.session = nil
+            self.screen = nil
+            if let app = self.previousApp, !app.isTerminated { app.activate() }
+            self.previousApp = nil
         }
         self.session = session
+        self.screen = screen
         session.show()
+    }
+
+    private func switchDisplay(carrying selection: NSRect?) {
+        let screens = NSScreen.screens
+        guard screens.count > 1 else {
+            Toast.show(message: "Only one display", style: .info)
+            return
+        }
+        guard !starting, let current = screen else { return }
+        let index = screens.firstIndex(of: current) ?? 0
+        open(screens[(index + 1) % screens.count], selection: selection)
     }
 
     /// The display holding the frontmost app's frontmost window; the cursor's display as fallback.
@@ -76,6 +103,7 @@ final class InlineCaptureController {
 final class InlineCaptureSession: NSObject {
     var onPin: ((NSImage) -> Void)?
     var onFinished: (() -> Void)?
+    var onSwitchDisplay: ((NSRect?) -> Void)?
 
     private let frozen: CGImage
     private let window: InlineOverlayWindow
@@ -88,7 +116,7 @@ final class InlineCaptureSession: NSObject {
     private var finished = false
     private var isScanning = false
 
-    init(frozen: CGImage, screen: NSScreen) {
+    init(frozen: CGImage, screen: NSScreen, selection: NSRect? = nil) {
         self.frozen = frozen
         let bounds = NSRect(origin: .zero, size: screen.frame.size)
         window = InlineOverlayWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
@@ -138,6 +166,7 @@ final class InlineCaptureSession: NSObject {
         canvas.onCopy = { [weak self] in self?.copyAndClose() }
         canvas.onSave = { [weak self] in self?.saveAndClose() }
         canvas.onCancel = { [weak self] in self?.finish() }
+        canvas.onSwitchDisplay = { [weak self] in self?.requestSwitchDisplay() }
         toolbar.onAction = { [weak self] action in self?.handle(action) }
         toolbar.onHover = { [weak self] hover in self?.showHoverLabel(hover) }
         toolbar.onSettings = { [weak self] action, frame in self?.openSettings(action, anchor: frame) }
@@ -147,6 +176,7 @@ final class InlineCaptureSession: NSObject {
             self.settings.lineWidth = width
             self.settings.save()
         }
+        if let selection { canvas.restoreSelection(selection) }
     }
 
     func show() {
@@ -335,11 +365,27 @@ final class InlineCaptureSession: NSObject {
 
     private func finish() {
         guard !finished else { return }
+        close()
+        onFinished?()
+    }
+
+    /// Tears the overlay down without ending the capture, so the previous app is not reactivated on a display switch.
+    func close() {
         finished = true
         hideSettings()
         window.orderOut(nil)
         window.contentView = nil
-        onFinished?()
+    }
+
+    private func requestSwitchDisplay() {
+        // Annotations are drawn over this display's pixels; switching would drop them.
+        guard canvas.annotations.isEmpty else {
+            Toast.show(message: "Clear annotations to switch display", style: .info)
+            return
+        }
+        guard !blockedByScan() else { return }
+        canvas.endTextEditing()
+        onSwitchDisplay?(canvas.selection)
     }
 
     /// Crops the frozen display to the selection at full pixel resolution and composites the annotations.
@@ -436,6 +482,7 @@ final class InlineCanvas: AnnotationCanvas {
     var onCancel: (() -> Void)?
     var onLineWidthChanged: ((CGFloat) -> Void)?
     var onPointerDown: (() -> Void)?
+    var onSwitchDisplay: (() -> Void)?
 
     private var drag: Drag = .none {
         didSet { window?.invalidateCursorRects(for: self) }
@@ -615,8 +662,16 @@ final class InlineCanvas: AnnotationCanvas {
         switch event.keyCode {
         case 53: onCancel?()      // Esc
         case 36, 76: onCopy?()    // Return, keypad Enter
+        case 48: onSwitchDisplay?() // Tab
         default: super.keyDown(with: event)
         }
+    }
+
+    /// Carries a selection over from another display, which may be smaller than the one it was drawn on.
+    func restoreSelection(_ rect: NSRect) {
+        let clamped = rect.intersection(bounds)
+        selection = clamped.width < Self.minimumSide || clamped.height < Self.minimumSide ? nil : clamped
+        onSelectionChanged?()
     }
 
     private func beginCreating(at point: NSPoint) {
