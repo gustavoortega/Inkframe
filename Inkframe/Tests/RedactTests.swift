@@ -35,6 +35,32 @@ final class RedactTests: XCTestCase {
         XCTAssertEqual(notOpaque, 0, "pixels inside the redact box that are not opaque black")
     }
 
+    /// The capture is cropped to the selection, so a box dragged past its edge must not show outside it on screen.
+    func testInlineAnnotationsAreClippedToTheSelection() throws {
+        let canvas = InlineCanvas(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
+        canvas.drawsBaseImage = false
+        canvas.mouseDown(with: Self.mouseEvent(.leftMouseDown, at: NSPoint(x: 20, y: 20)))
+        canvas.mouseDragged(with: Self.mouseEvent(.leftMouseDragged, at: NSPoint(x: 100, y: 80)))
+        canvas.mouseUp(with: Self.mouseEvent(.leftMouseUp, at: NSPoint(x: 100, y: 80)))
+        XCTAssertEqual(canvas.selection, NSRect(x: 20, y: 20, width: 80, height: 60))
+
+        canvas.currentTool = .redact
+        canvas.mouseDown(with: Self.mouseEvent(.leftMouseDown, at: NSPoint(x: 60, y: 40)))
+        canvas.mouseDragged(with: Self.mouseEvent(.leftMouseDragged, at: NSPoint(x: 180, y: 60)))
+        canvas.mouseUp(with: Self.mouseEvent(.leftMouseUp, at: NSPoint(x: 180, y: 60)))
+        XCTAssertEqual(canvas.annotations.count, 1)
+
+        let rep = try XCTUnwrap(canvas.bitmapImageRepForCachingDisplay(in: canvas.bounds))
+        canvas.cacheDisplay(in: canvas.bounds, to: rep)
+        // Bitmap rows count from the top; canvas y 50 is row 50 in a 100-point view at any scale factor.
+        func alpha(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
+            let scale = CGFloat(rep.pixelsWide) / canvas.bounds.width
+            return rep.colorAt(x: Int(x * scale), y: Int((canvas.bounds.height - y) * scale))?.alphaComponent ?? -1
+        }
+        XCTAssertEqual(alpha(80, 50), 1, "redact missing inside the selection")
+        XCTAssertEqual(alpha(150, 50), 0, "redact painted outside the selection")
+    }
+
     private static func stripedImage(width: Int, height: Int) -> CGImage? {
         guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
