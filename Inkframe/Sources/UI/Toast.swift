@@ -51,7 +51,9 @@ enum Toast {
                 backing: .buffered,
                 defer: false
             )
-            window.level = .floating
+            // Toasts during a capture must show above its overlay, which sits at the screen saver level.
+            window.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
+            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             window.backgroundColor = .clear
             window.isOpaque = false
             window.hasShadow = true
