@@ -467,6 +467,16 @@ class AnnotationCanvas: NSView {
 
     // MARK: - Undo/Redo
 
+    /// Adds several annotations as one undo step.
+    func addAnnotations(_ added: [Annotation]) {
+        guard !added.isEmpty else { return }
+        pushUndo()
+        annotations.append(contentsOf: added)
+        redoStack.removeAll()
+        needsDisplay = true
+        onAnnotationsChanged?()
+    }
+
     func pushUndo() {
         undoStack.append(UndoState(image: baseImage, annotations: annotations.map { copyAnnotation($0) }, canvasSize: frame.size))
         redoStack.removeAll()
