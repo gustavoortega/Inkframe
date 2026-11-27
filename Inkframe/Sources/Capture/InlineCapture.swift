@@ -462,6 +462,15 @@ final class InlineCanvas: AnnotationCanvas {
         didSet { window?.invalidateCursorRects(for: self) }
     }
 
+    // Output is cropped to the selection, so annotations are clipped on screen too and nothing shows that won't be kept.
+    override func draw(_ dirtyRect: NSRect) {
+        guard let selection else { return super.draw(dirtyRect) }
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: selection).setClip()
+        super.draw(dirtyRect)
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
     // AppKit gives the last added rect priority, so the order mirrors mouseDown in reverse: crosshair, move, resize.
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)

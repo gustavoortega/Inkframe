@@ -13,6 +13,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Inkframe "$APP/Contents/MacOS/Inkframe"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+# The build number follows the commit count so every installed build is distinguishable without a manual bump.
+plutil -replace CFBundleVersion -string "$(git rev-list --count HEAD)" "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --options runtime --timestamp=none \
