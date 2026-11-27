@@ -5,6 +5,7 @@ final class InlineToolbar: NSView {
     enum Action {
         case tool(AnnotationToolType, filled: Bool)
         case color
+        case autoRedact
         case undo, redo, copy, save, pin, close
     }
 
@@ -29,6 +30,7 @@ final class InlineToolbar: NSView {
         Item(action: .tool(.text, filled: false), symbol: "textformat", tip: "Text"),
         Item(action: .tool(.numberedStep, filled: false), symbol: "1.circle", tip: "Counter"),
         Item(action: .tool(.redact, filled: false), symbol: "rectangle.inset.filled", tip: "Redact"),
+        Item(action: .autoRedact, symbol: "wand.and.stars", tip: "Auto-redact"),
         Item(action: .tool(.blur, filled: false), symbol: "checkerboard.rectangle", tip: "Pixelate"),
         Item(action: .tool(.select, filled: false), symbol: "arrow.up.and.down.and.arrow.left.and.right", tip: "Move annotation or selection"),
         Item(action: .color, symbol: "circle.fill", tip: "Color and size (or right-click a tool)"),

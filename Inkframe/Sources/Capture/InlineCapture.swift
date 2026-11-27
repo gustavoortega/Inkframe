@@ -86,6 +86,7 @@ final class InlineCaptureSession: NSObject {
     private var settingsPanel: ToolSettingsPanel?
     private var settings = InlineToolSettings.load()
     private var finished = false
+    private var isScanning = false
 
     init(frozen: CGImage, screen: NSScreen) {
         self.frozen = frozen
@@ -180,6 +181,8 @@ final class InlineCaptureSession: NSObject {
             } else {
                 hideSettings()
             }
+        case .autoRedact:
+            autoRedact()
         case .undo:
             canvas.endTextEditing()
             canvas.performUndo()
@@ -196,6 +199,44 @@ final class InlineCaptureSession: NSObject {
             finish()
         }
         window.makeFirstResponder(canvas)
+    }
+
+    private func autoRedact() {
+        guard !isScanning, let captured = canvas.selection, let image = renderSelection() else { return }
+        isScanning = true
+        Toast.show(message: "Scanning…")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Result { try AutoRedact.redactions(in: image, selection: captured) }
+            DispatchQueue.main.async {
+                guard let self, !self.finished else { return }
+                // Cleared on the failure path too, or a Vision error would lock copy/save/pin for good.
+                self.isScanning = false
+                switch result {
+                case .failure:
+                    Toast.show(message: "Text recognition failed. Nothing redacted.", style: .error)
+                case .success(let rects):
+                    guard self.canvas.selection == captured else {
+                        Toast.show(message: "Selection changed. Run again.", style: .info)
+                        return
+                    }
+                    self.canvas.addAnnotations(rects.map { rect in
+                        let annotation = Annotation(toolType: .redact)
+                        annotation.rect = rect
+                        return annotation
+                    })
+                    Toast.show(message: rects.isEmpty ? "No matches found. Review manually."
+                                                      : "Redacted \(rects.count) matches. Review before sharing.",
+                               style: .info)
+                }
+            }
+        }
+    }
+
+    /// Output is blocked mid-scan so a half-redacted capture cannot leave the app.
+    private func blockedByScan() -> Bool {
+        guard isScanning else { return false }
+        Toast.show(message: "Scanning, try again in a moment", style: .info)
+        return true
     }
 
     private func openSettings(_ action: InlineToolbar.Action, anchor: NSRect) {
@@ -255,6 +296,7 @@ final class InlineCaptureSession: NSObject {
     // MARK: Output
 
     private func copyAndClose() {
+        guard !blockedByScan() else { return }
         guard let image = renderSelection(), let png = Self.pngData(image) else { return }
         let item = NSPasteboardItem()
         item.setData(png, forType: .png)
@@ -271,6 +313,7 @@ final class InlineCaptureSession: NSObject {
     }
 
     private func saveAndClose() {
+        guard !blockedByScan() else { return }
         guard let image = renderSelection(), let png = Self.pngData(image) else { return }
         do {
             let url = try Self.writeExclusive(png, in: Defaults.shared.saveLocation)
@@ -283,6 +326,7 @@ final class InlineCaptureSession: NSObject {
     }
 
     private func pinAndClose() {
+        guard !blockedByScan() else { return }
         guard let image = renderSelection(), let selection = canvas.selection else { return }
         let pinned = NSImage(cgImage: image, size: selection.size)
         finish()
