@@ -44,9 +44,7 @@ class OCRTool {
                     completion(.failure(CaptureError.captureFailed))
                 } else {
                     // Copy to clipboard
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.clearContents()
-                    pasteboard.setString(text, forType: .string)
+                    Clipboard.write([text as NSString])
                     completion(.success(text))
                 }
             }

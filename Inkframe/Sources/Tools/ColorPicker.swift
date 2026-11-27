@@ -96,9 +96,7 @@ class ColorPickerView: NSView {
         NSCursor.pop()
         updateColorAtMouse()
 
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(currentHex, forType: .string)
+        Clipboard.write([currentHex as NSString])
 
         Toast.show(message: "Copied \(currentHex)")
         completion(currentColor)

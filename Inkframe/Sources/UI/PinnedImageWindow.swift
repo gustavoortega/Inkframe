@@ -112,9 +112,7 @@ class PinnedImageView: NSView {
     }
 
     @objc private func copyImage() {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects([image])
+        Clipboard.write([image])
     }
 
     @objc private func closeWindow() {

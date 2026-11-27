@@ -307,9 +307,7 @@ class AnnotationEditorController: NSObject, NSWindowDelegate {
 
     @objc private func copyToClipboard() {
         guard let image = canvas?.renderFinalImage() else { return }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects([image])
+        Clipboard.write([image])
         Toast.show(message: "Copied to clipboard")
     }
 

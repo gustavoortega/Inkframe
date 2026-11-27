@@ -200,6 +200,7 @@ final class InlineCaptureSession: NSObject {
 
     private func openSettings(_ action: InlineToolbar.Action, anchor: NSRect) {
         if case .tool = action { handle(action) }
+        guard canvas.currentTool != .redact else { return }
         showSettings(for: canvas.currentTool, anchor: anchor)
     }
 
@@ -255,13 +256,15 @@ final class InlineCaptureSession: NSObject {
 
     private func copyAndClose() {
         guard let image = renderSelection(), let png = Self.pngData(image) else { return }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.declareTypes([.png, .tiff], owner: nil)
-        pasteboard.setData(png, forType: .png)
+        let item = NSPasteboardItem()
+        item.setData(png, forType: .png)
         // Some apps only read TIFF from the pasteboard.
         if let tiff = NSBitmapImageRep(cgImage: image).tiffRepresentation {
-            pasteboard.setData(tiff, forType: .tiff)
+            item.setData(tiff, forType: .tiff)
+        }
+        guard Clipboard.write([item]) else {
+            Toast.show(message: "Copy failed")
+            return
         }
         finish()
         Toast.show(message: "Copied to clipboard")
